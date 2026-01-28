@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { ProductsService } from './modules/products/products.service';
 import { IntegrationsService } from './modules/integrations/integrations.service';
+import { TelegramService } from './modules/integrations/services/telegram.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Product } from './modules/products/schemas/product.schema';
 import { IntegrationType, IntegrationStatus } from './modules/integrations/schemas/integration.schema';
@@ -19,23 +20,84 @@ async function seed() {
 
     console.log('📱 Настраиваю Telegram интеграцию...');
     try {
-      const telegramIntegration = await integrationsService.create({
-        type: IntegrationType.TELEGRAM,
-        name: 'Main Telegram Bot',
-        description: 'Основной Telegram бот для уведомлений о заказах',
-        status: IntegrationStatus.ACTIVE,
-        botToken: configService.get<string>('TELEGRAM_BOT_TOKEN'),
-        isActive: true,
-        settings: {
-          groupId: configService.get<string>('TELEGRAM_GROUP_ID'),
-        },
-      });
-      console.log('✅ Telegram интеграция создана');
-      console.log('   Bot Token: ' + telegramIntegration.botToken);
-      console.log('   Group ID: ' + telegramIntegration.settings?.groupId);
-      console.log('   Статус: ' + telegramIntegration.status + '\n');
-    } catch (error) {
-      console.warn('⚠️  Ошибка при создании Telegram интеграции:', error.message);
+      const botToken = configService.get<string>('TELEGRAM_BOT_TOKEN');
+      const groupId = configService.get<string>('TELEGRAM_GROUP_ID');
+      
+      console.log('   Проверка переменных окружения:');
+      console.log('   TELEGRAM_BOT_TOKEN:', botToken ? '✅ Найден' : '❌ Не найден');
+      console.log('   TELEGRAM_GROUP_ID:', groupId ? '✅ Найден (' + groupId + ')' : '❌ Не найден');
+      
+      if (!botToken || !groupId) {
+        console.warn('⚠️  Переменные окружения не настроены! Проверьте .env файл.');
+        console.warn('   Нужно добавить:');
+        console.warn('   TELEGRAM_BOT_TOKEN=ваш_токен');
+        console.warn('   TELEGRAM_GROUP_ID=ваш_chat_id\n');
+      } else {
+        // Ищем существующую интеграцию
+        const existingIntegrations = await integrationsService.findByType(IntegrationType.TELEGRAM, true);
+        let telegramIntegration;
+        
+        if (existingIntegrations.length > 0) {
+          // Обновляем существующую
+          console.log('   Найдена существующая интеграция, обновляю...');
+          telegramIntegration = existingIntegrations[0];
+          telegramIntegration.botToken = botToken;
+          telegramIntegration.status = IntegrationStatus.ACTIVE;
+          telegramIntegration.isActive = true;
+          telegramIntegration.settings = {
+            ...telegramIntegration.settings,
+            groupId: groupId,
+          };
+          await telegramIntegration.save();
+          console.log('✅ Telegram интеграция обновлена');
+        } else {
+          // Создаем новую
+          console.log('   Создаю новую интеграцию...');
+          telegramIntegration = await integrationsService.create({
+            type: IntegrationType.TELEGRAM,
+            name: 'Main Telegram Bot',
+            description: 'Основной Telegram бот для уведомлений о заказах',
+            status: IntegrationStatus.ACTIVE,
+            botToken: botToken,
+            isActive: true,
+            settings: {
+              groupId: groupId,
+            },
+          });
+          console.log('✅ Telegram интеграция создана');
+        }
+        
+        console.log('   Bot Token:', telegramIntegration.botToken ? '✅ Настроен' : '❌ Не настроен');
+        console.log('   Group ID:', telegramIntegration.settings?.groupId || '❌ Не настроен');
+        console.log('   Статус:', telegramIntegration.status);
+        console.log('   isActive:', telegramIntegration.isActive);
+        
+        // Тестируем отправку сообщения
+        if (telegramIntegration.botToken && telegramIntegration.settings?.groupId) {
+          try {
+            console.log('\n   Тестирование отправки сообщения...');
+            const telegramService = app.get(TelegramService);
+            await telegramService.sendMessage(
+              telegramIntegration as any,
+              '🧪 <b>Тестовое сообщение</b>\n\nИнтеграция Telegram настроена и работает!',
+              telegramIntegration.settings.groupId,
+              { parseMode: 'HTML' }
+            );
+            console.log('   ✅ Тестовое сообщение успешно отправлено в Telegram!');
+          } catch (testError: any) {
+            console.error('   ❌ Ошибка при тестовой отправке:', testError.message);
+            if (testError.response?.data) {
+              console.error('   Детали ошибки от Telegram API:', testError.response.data);
+            }
+            console.error('   Проверьте правильность botToken и groupId');
+          }
+        }
+        
+        console.log('');
+      }
+    } catch (error: any) {
+      console.error('❌ Ошибка при настройке Telegram интеграции:', error.message);
+      console.error('   Stack:', error.stack);
     }
 
     console.log('🗑️  Удаляю старые товары...');

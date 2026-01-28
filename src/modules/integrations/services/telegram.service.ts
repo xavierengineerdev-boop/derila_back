@@ -28,10 +28,20 @@ export class TelegramService {
       throw new BadRequestException('Group ID is not configured');
     }
 
+    // Преобразуем groupId в строку или число (Telegram API принимает оба варианта)
+    // Если это строка с числом, преобразуем в число для групп (отрицательные числа)
+    let chatId: string | number = targetGroupId;
+    if (typeof targetGroupId === 'string') {
+      const numId = parseInt(targetGroupId, 10);
+      if (!isNaN(numId)) {
+        chatId = numId;
+      }
+    }
+
     try {
       const url = `${this.baseUrl}${botToken}/sendMessage`;
       const payload = {
-        chat_id: targetGroupId,
+        chat_id: chatId,
         text: message,
         parse_mode: options?.parseMode || 'HTML',
         disable_web_page_preview: options?.disableWebPagePreview || false,
