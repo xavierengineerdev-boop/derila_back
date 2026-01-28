@@ -112,7 +112,7 @@ export class OrdersService {
 
       const integration = telegramIntegrations[0];
       console.log('Используется интеграция:', {
-        id: integration._id,
+        id: (integration as any)._id || (integration as any).id,
         name: integration.name,
         hasBotToken: !!(integration.botToken || integration.token),
         hasGroupId: !!integration.settings?.groupId,

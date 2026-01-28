@@ -29,7 +29,7 @@ async function checkTelegram() {
 
     for (const integration of telegramIntegrations) {
       console.log('📱 Интеграция:', integration.name);
-      console.log('   ID:', integration._id);
+      console.log('   ID:', (integration as any)._id || (integration as any).id);
       console.log('   Статус:', integration.status);
       console.log('   isActive:', integration.isActive);
       console.log('   Bot Token:', integration.botToken ? '✅ Настроен' : '❌ Не настроен');
@@ -46,7 +46,7 @@ async function checkTelegram() {
           console.log('   ✅ Бот работает!');
           console.log('   Имя бота:', botInfo.result?.first_name);
           console.log('   Username:', botInfo.result?.username);
-        } catch (e) {
+        } catch (e: any) {
           console.error('   ❌ Ошибка при проверке бота:', e.message);
         }
       }
@@ -55,7 +55,7 @@ async function checkTelegram() {
     }
 
     console.log('✅ Проверка завершена!');
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Ошибка при проверке:', error.message);
   } finally {
     await app.close();
