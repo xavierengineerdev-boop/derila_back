@@ -20,12 +20,26 @@ async function seed() {
 
     console.log('📱 Настраиваю Telegram интеграцию...');
     try {
-      const botToken = configService.get<string>('TELEGRAM_BOT_TOKEN');
-      const groupId = configService.get<string>('TELEGRAM_GROUP_ID');
+      let botToken = configService.get<string>('TELEGRAM_BOT_TOKEN');
+      let groupIdRaw = configService.get<string>('TELEGRAM_GROUP_ID');
+      
+      // Убираем пробелы и кавычки, если есть
+      if (botToken) {
+        botToken = botToken.trim().replace(/^["']|["']$/g, '');
+      }
+      if (groupIdRaw) {
+        groupIdRaw = groupIdRaw.trim().replace(/^["']|["']$/g, '');
+      }
+      
+      const groupId = groupIdRaw;
       
       console.log('   Проверка переменных окружения:');
-      console.log('   TELEGRAM_BOT_TOKEN:', botToken ? '✅ Найден' : '❌ Не найден');
-      console.log('   TELEGRAM_GROUP_ID:', groupId ? '✅ Найден (' + groupId + ')' : '❌ Не найден');
+      console.log('   TELEGRAM_BOT_TOKEN:', botToken ? '✅ Найден (' + botToken.substring(0, 10) + '...)' : '❌ Не найден');
+      console.log('   TELEGRAM_GROUP_ID:', groupId ? '✅ Найден (' + groupId + ', тип: ' + typeof groupId + ')' : '❌ Не найден');
+      if (groupId) {
+        const numId = parseInt(groupId, 10);
+        console.log('   Преобразование groupId в число:', isNaN(numId) ? '❌ Не число' : '✅ ' + numId);
+      }
       
       if (!botToken || !groupId) {
         console.warn('⚠️  Переменные окружения не настроены! Проверьте .env файл.');
@@ -46,7 +60,7 @@ async function seed() {
           telegramIntegration.isActive = true;
           telegramIntegration.settings = {
             ...telegramIntegration.settings,
-            groupId: groupId,
+            groupId: groupId, // Уже обработан выше (trim)
           };
           await telegramIntegration.save();
           console.log('✅ Telegram интеграция обновлена');
@@ -61,7 +75,7 @@ async function seed() {
             botToken: botToken,
             isActive: true,
             settings: {
-              groupId: groupId,
+              groupId: groupId, // Уже обработан выше (trim)
             },
           });
           console.log('✅ Telegram интеграция создана');

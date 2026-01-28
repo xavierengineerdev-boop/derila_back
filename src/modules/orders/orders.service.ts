@@ -136,9 +136,12 @@ export class OrdersService {
         return;
       }
 
+      console.log('Найден groupId в settings:', targetGroupId, '(тип:', typeof targetGroupId + ')');
+
       try {
         console.log('Отправка сообщения в Telegram...');
         console.log('Chat ID:', targetGroupId);
+        console.log('Bot Token:', integration.botToken ? '✅ Настроен' : '❌ Не настроен');
         
         const result = await this.telegramService.sendMessage(
           integration as any,

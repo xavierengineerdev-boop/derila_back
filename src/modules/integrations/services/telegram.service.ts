@@ -32,8 +32,10 @@ export class TelegramService {
     // Если это строка с числом, преобразуем в число для групп (отрицательные числа)
     let chatId: string | number = targetGroupId;
     if (typeof targetGroupId === 'string') {
-      const numId = parseInt(targetGroupId, 10);
-      if (!isNaN(numId)) {
+      // Убираем пробелы и проверяем, является ли это числом (включая отрицательные)
+      const trimmed = targetGroupId.trim();
+      const numId = parseInt(trimmed, 10);
+      if (!isNaN(numId) && trimmed === numId.toString()) {
         chatId = numId;
       }
     }
@@ -48,9 +50,11 @@ export class TelegramService {
         ...options,
       };
 
-      console.log('Отправка сообщения в Telegram:');
+      console.log('=== ОТПРАВКА СООБЩЕНИЯ В TELEGRAM ===');
+      console.log('Исходный groupId:', targetGroupId, '(тип:', typeof targetGroupId + ')');
+      console.log('Преобразованный chatId:', chatId, '(тип:', typeof chatId + ')');
       console.log('URL:', url.replace(botToken, 'TOKEN_HIDDEN'));
-      console.log('Chat ID:', targetGroupId);
+      console.log('Payload chat_id:', payload.chat_id);
       console.log('Длина сообщения:', message.length, 'символов');
 
       const response = await axios.post(url, payload);
@@ -178,8 +182,10 @@ export class TelegramService {
     // Преобразуем chatId в строку или число
     let finalChatId: string | number = targetChatId;
     if (typeof targetChatId === 'string') {
-      const numId = parseInt(targetChatId, 10);
-      if (!isNaN(numId)) {
+      // Убираем пробелы и проверяем, является ли это числом (включая отрицательные)
+      const trimmed = targetChatId.trim();
+      const numId = parseInt(trimmed, 10);
+      if (!isNaN(numId) && trimmed === numId.toString()) {
         finalChatId = numId;
       }
     }
