@@ -72,11 +72,30 @@ async function seed() {
         console.log('   Статус:', telegramIntegration.status);
         console.log('   isActive:', telegramIntegration.isActive);
         
-        // Тестируем отправку сообщения
+        // Проверяем доступ к группе и отправляем тестовое сообщение
         if (telegramIntegration.botToken && telegramIntegration.settings?.groupId) {
+          const telegramService = app.get(TelegramService);
+          
+          // Сначала проверяем, может ли бот получить информацию о группе
           try {
-            console.log('\n   Тестирование отправки сообщения...');
-            const telegramService = app.get(TelegramService);
+            console.log('\n   Проверка доступа к группе...');
+            const chatInfo = await telegramService.getChatInfo(telegramIntegration as any);
+            console.log('   ✅ Бот имеет доступ к группе:', chatInfo.result?.title || chatInfo.result?.id);
+            console.log('   Тип чата:', chatInfo.result?.type);
+          } catch (chatError: any) {
+            console.error('   ❌ Бот не может получить доступ к группе:', chatError.message);
+            console.error('   ⚠️  Убедитесь, что:');
+            console.error('      1. Бот добавлен в группу');
+            console.error('      2. ID группы правильный:', telegramIntegration.settings.groupId);
+            console.error('      3. Бот не был удален из группы');
+            console.error('');
+            // Не пытаемся отправлять сообщение, если нет доступа к группе
+            return;
+          }
+          
+          // Если доступ есть, пробуем отправить тестовое сообщение
+          try {
+            console.log('   Тестирование отправки сообщения...');
             await telegramService.sendMessage(
               telegramIntegration as any,
               '🧪 <b>Тестовое сообщение</b>\n\nИнтеграция Telegram настроена и работает!',
@@ -89,7 +108,7 @@ async function seed() {
             if (testError.response?.data) {
               console.error('   Детали ошибки от Telegram API:', testError.response.data);
             }
-            console.error('   Проверьте правильность botToken и groupId');
+            console.error('   Проверьте права бота на отправку сообщений в группе');
           }
         }
         

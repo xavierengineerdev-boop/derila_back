@@ -162,6 +162,38 @@ export class TelegramService {
     }
   }
 
+  async getChatInfo(integration: IntegrationDocument, chatId?: string | number): Promise<any> {
+    const botToken = integration.botToken || integration.token;
+    
+    if (!botToken) {
+      throw new BadRequestException('Telegram bot token is not configured');
+    }
+
+    const targetChatId = chatId || integration.settings?.groupId;
+    
+    if (!targetChatId) {
+      throw new BadRequestException('Chat ID is not configured');
+    }
+
+    // Преобразуем chatId в строку или число
+    let finalChatId: string | number = targetChatId;
+    if (typeof targetChatId === 'string') {
+      const numId = parseInt(targetChatId, 10);
+      if (!isNaN(numId)) {
+        finalChatId = numId;
+      }
+    }
+
+    try {
+      const url = `${this.baseUrl}${botToken}/getChat`;
+      const response = await axios.post(url, { chat_id: finalChatId });
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.description || error.message;
+      throw new BadRequestException(`Failed to get chat info: ${errorMessage}`);
+    }
+  }
+
   private async updateUsageStats(integration: IntegrationDocument): Promise<void> {
     integration.usageCount = (integration.usageCount || 0) + 1;
     integration.lastUsedAt = new Date();
