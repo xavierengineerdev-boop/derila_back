@@ -178,8 +178,9 @@ async function seed() {
       console.log('❌ Товаров не найдено!');
     } else {
       allProducts.forEach((product, index) => {
+        const productAny = product as any; // Mongoose документы имеют _id, но TypeScript этого не знает
         console.log(`${index + 1}. ${product.name}`);
-        console.log(`   ID: ${product._id}`);
+        console.log(`   ID: ${productAny._id || 'N/A'}`);
         console.log(`   SKU: ${product.sku || 'N/A'}`);
         console.log(`   Цена: ${product.price.current} ${product.price.currency || 'zł'}`);
         if (product.price.old) {
