@@ -42,7 +42,7 @@ async function seed() {
     await productModel.deleteMany({});
     console.log('✅ Старые товары удалены\n');
 
-    const pillow = {
+    const product = {
       name: 'Derila Ergo Pillow',
       description: 'Ортопедическая подушка для здорового сна',
       shortDescription: 'Комфортная ортопедическая подушка',
@@ -71,40 +71,10 @@ async function seed() {
       reviewsCount: 22,
     };
 
-    const createdPillow = await productsService.create(pillow);
+    const createdProduct = await productsService.create(product);
     console.log('✅ Товар создан: Derila Ergo Pillow');
-    console.log('   Цена: $' + createdPillow.price.current);
-    console.log('   Была: $' + createdPillow.price.old);
-
-    const sensoryPanel = {
-      name: 'Sensory Sky Panels (6-piece Activity Board)',
-      description: 'Großes 6-teiliges Aktivitätsbrett für Kinder с небесной темой',
-      shortDescription: 'Набор сенсорных панелей для развития и игр',
-      price: {
-        current: 409.99,
-        old: 829.99,
-        currency: 'zł',
-      },
-      sku: 'PANEL-001',
-      stock: 50,
-      attributes: [
-        { name: 'Farbthema', value: 'Kräftige Farben' },
-        { name: 'Montageart', value: 'Wandmontage' },
-        { name: 'Modulgröße', value: '65x35x4 cm' },
-        { name: 'Gesamtlänge', value: '65x210 cm' },
-      ],
-      images: [
-        { url: '/Preview-1.svg', alt: 'Sensory Panel Preview 1', order: 0, isMain: true },
-        { url: '/Preview-2.svg', alt: 'Sensory Panel Preview 2', order: 1 },
-        { url: '/Preview-3.svg', alt: 'Sensory Panel Preview 3', order: 2 },
-      ],
-      rating: 4.9,
-      reviewsCount: 14,
-    };
-
-    const createdPanel = await productsService.create(sensoryPanel);
-    console.log('✅ Товар создан: Sensory Sky Panels (6-piece Activity Board)');
-    console.log('   Цена: $' + createdPanel.price.current);
+    console.log('   Цена: $' + createdProduct.price.current);
+    console.log('   Была: $' + createdProduct.price.old);
 
     console.log('\n📦 Все товары в БД:\n');
     const allProducts = await productsService.findAll(true);
