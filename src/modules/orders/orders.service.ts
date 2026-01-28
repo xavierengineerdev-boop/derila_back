@@ -29,11 +29,56 @@ export class OrdersService {
   }
 
   async create(createOrderDto: CreateOrderDto, sessionId?: string, ipAddress?: string, userAgent?: string): Promise<Order> {
-    const productIds = createOrderDto.items.map(item => new Types.ObjectId(item.product));
+    console.log('=== СОЗДАНИЕ ЗАКАЗА ===');
+    console.log('Полученные items:', JSON.stringify(createOrderDto.items, null, 2));
+    
+    // Валидируем и преобразуем product IDs
+    const productIds: Types.ObjectId[] = [];
+    const invalidItems: string[] = [];
+    
+    for (let i = 0; i < createOrderDto.items.length; i++) {
+      const item = createOrderDto.items[i];
+      const productIdStr = item.product;
+      
+      console.log(`Item ${i}: product ID = "${productIdStr}" (тип: ${typeof productIdStr})`);
+      
+      if (!productIdStr) {
+        invalidItems.push(`Item ${i}: product ID is missing or null`);
+        continue;
+      }
+      
+      if (!Types.ObjectId.isValid(productIdStr)) {
+        invalidItems.push(`Item ${i}: "${productIdStr}" is not a valid ObjectId`);
+        continue;
+      }
+      
+      try {
+        productIds.push(new Types.ObjectId(productIdStr));
+      } catch (error) {
+        invalidItems.push(`Item ${i}: failed to create ObjectId from "${productIdStr}"`);
+      }
+    }
+    
+    if (invalidItems.length > 0) {
+      console.error('❌ Ошибки валидации product IDs:');
+      invalidItems.forEach(err => console.error('  -', err));
+      throw new BadRequestException(`Invalid product IDs: ${invalidItems.join('; ')}`);
+    }
+    
+    if (productIds.length === 0) {
+      throw new BadRequestException('No valid product IDs provided');
+    }
+    
+    console.log('Валидные product IDs:', productIds.map(id => id.toString()));
+    
     const products = await this.productModel.find({ _id: { $in: productIds } }).exec();
-
-    if (products.length !== createOrderDto.items.length) {
-      throw new BadRequestException('Some products not found');
+    console.log(`Найдено продуктов в БД: ${products.length} из ${productIds.length}`);
+    
+    if (products.length !== productIds.length) {
+      const foundIds = products.map(p => p._id.toString());
+      const missingIds = productIds.filter(id => !foundIds.includes(id.toString())).map(id => id.toString());
+      console.error('❌ Не найдены продукты с ID:', missingIds);
+      throw new BadRequestException(`Some products not found. Missing IDs: ${missingIds.join(', ')}`);
     }
 
     const productMap = new Map(products.map(p => [p._id.toString(), p]));
