@@ -38,7 +38,18 @@ export class TelegramService {
         ...options,
       };
 
+      console.log('Отправка сообщения в Telegram:');
+      console.log('URL:', url.replace(botToken, 'TOKEN_HIDDEN'));
+      console.log('Chat ID:', targetGroupId);
+      console.log('Длина сообщения:', message.length, 'символов');
+
       const response = await axios.post(url, payload);
+      
+      console.log('✅ Ответ от Telegram API:', {
+        ok: response.data.ok,
+        messageId: response.data.result?.message_id,
+        chat: response.data.result?.chat?.title || response.data.result?.chat?.id
+      });
       
       await this.updateUsageStats(integration);
 
@@ -48,8 +59,20 @@ export class TelegramService {
         data: response.data,
       };
     } catch (error) {
-      await this.updateErrorStats(integration, error.message);
-      throw new BadRequestException(`Failed to send Telegram message: ${error.message}`);
+      console.error('❌ Ошибка при отправке сообщения в Telegram:');
+      console.error('Ошибка:', error);
+      
+      let errorMessage = error.message;
+      if (error.response) {
+        console.error('Статус ответа:', error.response.status);
+        console.error('Данные ответа:', error.response.data);
+        errorMessage = error.response.data?.description || error.response.data?.error_code 
+          ? `Telegram API Error ${error.response.data.error_code}: ${error.response.data.description}`
+          : error.message;
+      }
+      
+      await this.updateErrorStats(integration, errorMessage);
+      throw new BadRequestException(`Failed to send Telegram message: ${errorMessage}`);
     }
   }
 

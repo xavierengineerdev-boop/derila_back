@@ -97,42 +97,79 @@ export class OrdersService {
   }
 
   private async sendOrderToTelegram(order: OrderDocument): Promise<void> {
+    console.log('=== ОТПРАВКА ЗАКАЗА В TELEGRAM ===');
+    console.log('Номер заказа:', order.orderNumber);
+    
     try {
       const telegramIntegrations = await this.integrationsService.findActiveByType(IntegrationType.TELEGRAM);
+      console.log('Найдено активных интеграций Telegram:', telegramIntegrations.length);
       
       if (telegramIntegrations.length === 0) {
-        console.warn('No active Telegram integration found');
+        console.error('❌ Нет активных интеграций Telegram!');
+        console.error('Проверьте, что в базе данных есть интеграция с типом TELEGRAM, isActive=true, status=ACTIVE');
         return;
       }
 
       const integration = telegramIntegrations[0];
+      console.log('Используется интеграция:', {
+        id: integration._id,
+        name: integration.name,
+        hasBotToken: !!(integration.botToken || integration.token),
+        hasGroupId: !!integration.settings?.groupId,
+        groupId: integration.settings?.groupId
+      });
+
+      if (!integration.botToken && !integration.token) {
+        console.error('❌ У интеграции Telegram не настроен botToken или token!');
+        return;
+      }
 
       const message = this.formatOrderMessage(order);
+      console.log('Сообщение сформировано, длина:', message.length, 'символов');
+      console.log('Первые 200 символов сообщения:', message.substring(0, 200));
 
       const targetGroupId = integration.settings?.groupId;
 
       if (!targetGroupId) {
-        console.warn('No group ID configured for Telegram integration');
+        console.error('❌ У интеграции Telegram не настроен groupId в settings!');
+        console.error('Нужно добавить settings: { groupId: "ваш_chat_id" }');
         return;
       }
 
       try {
-        await this.telegramService.sendMessage(
+        console.log('Отправка сообщения в Telegram...');
+        console.log('Chat ID:', targetGroupId);
+        
+        const result = await this.telegramService.sendMessage(
           integration as any,
           message,
           targetGroupId,
           { parseMode: 'HTML' },
         );
 
+        console.log('✅ Сообщение успешно отправлено в Telegram!');
+        console.log('Message ID:', result.messageId);
+
         order.isSentToTelegram = true;
         order.sentToTelegramAt = new Date();
         await order.save();
+        console.log('Статус заказа обновлен: isSentToTelegram=true');
       } catch (sendError) {
-        console.error('Failed to send order to Telegram group/chat:', sendError);
+        console.error('❌ Ошибка при отправке сообщения в Telegram:');
+        console.error('Ошибка:', sendError);
+        console.error('Сообщение об ошибке:', sendError?.message || sendError);
+        console.error('Stack:', sendError?.stack);
+        
+        // Не прерываем выполнение, просто логируем
       }
     } catch (error) {
-      console.error('Failed to send order to Telegram:', error);
+      console.error('❌ Критическая ошибка при отправке заказа в Telegram:');
+      console.error('Ошибка:', error);
+      console.error('Сообщение об ошибке:', error?.message || error);
+      console.error('Stack:', error?.stack);
     }
+    
+    console.log('=== КОНЕЦ ОТПРАВКИ В TELEGRAM ===');
   }
 
   private formatOrderMessage(order: OrderDocument): string {
