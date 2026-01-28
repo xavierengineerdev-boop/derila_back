@@ -145,6 +145,13 @@ export class OrdersService {
     console.log('=== ОТПРАВКА ЗАКАЗА В TELEGRAM ===');
     console.log('Номер заказа:', order.orderNumber);
     
+    // Проверяем, не был ли заказ уже отправлен в Telegram
+    if (order.isSentToTelegram) {
+      console.log('⚠️ Заказ уже был отправлен в Telegram ранее. Пропускаем повторную отправку.');
+      console.log('Время отправки:', order.sentToTelegramAt);
+      return;
+    }
+    
     try {
       const telegramIntegrations = await this.integrationsService.findActiveByType(IntegrationType.TELEGRAM);
       console.log('Найдено активных интеграций Telegram:', telegramIntegrations.length);
