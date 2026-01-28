@@ -157,7 +157,7 @@ export class IntegrationsController {
     return this.telegramService.sendMessage(
       integration as any,
       sendMessageDto.message,
-      sendMessageDto.chatId,
+      sendMessageDto.groupId,
       sendMessageDto.options,
     );
   }

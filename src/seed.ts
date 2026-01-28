@@ -25,7 +25,6 @@ async function seed() {
         description: 'Основной Telegram бот для уведомлений о заказах',
         status: IntegrationStatus.ACTIVE,
         botToken: configService.get<string>('TELEGRAM_BOT_TOKEN'),
-        chatId: configService.get<string>('TELEGRAM_CHAT_ID'),
         isActive: true,
         settings: {
           groupId: configService.get<string>('TELEGRAM_GROUP_ID'),
@@ -33,9 +32,7 @@ async function seed() {
       });
       console.log('✅ Telegram интеграция создана');
       console.log('   Bot Token: ' + telegramIntegration.botToken);
-      console.log('   Chat ID: ' + telegramIntegration.chatId);
       console.log('   Group ID: ' + telegramIntegration.settings?.groupId);
-      console.log('   Group ID: ' + telegramIntegration.settings.groupId);
       console.log('   Статус: ' + telegramIntegration.status + '\n');
     } catch (error) {
       console.warn('⚠️  Ошибка при создании Telegram интеграции:', error.message);

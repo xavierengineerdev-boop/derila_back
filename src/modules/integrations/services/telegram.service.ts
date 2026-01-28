@@ -13,7 +13,7 @@ export class TelegramService {
   async sendMessage(
     integration: IntegrationDocument,
     message: string,
-    chatId?: string,
+    groupId?: string,
     options?: Record<string, any>,
   ): Promise<any> {
     const botToken = integration.botToken || integration.token;
@@ -22,16 +22,16 @@ export class TelegramService {
       throw new BadRequestException('Telegram bot token is not configured');
     }
 
-    const targetChatId = chatId || integration.chatId;
+    const targetGroupId = groupId || integration.settings?.groupId;
     
-    if (!targetChatId) {
-      throw new BadRequestException('Chat ID is not configured');
+    if (!targetGroupId) {
+      throw new BadRequestException('Group ID is not configured');
     }
 
     try {
       const url = `${this.baseUrl}${botToken}/sendMessage`;
       const payload = {
-        chat_id: targetChatId,
+        chat_id: targetGroupId,
         text: message,
         parse_mode: options?.parseMode || 'HTML',
         disable_web_page_preview: options?.disableWebPagePreview || false,
@@ -66,7 +66,7 @@ export class TelegramService {
     integration: IntegrationDocument,
     photo: string | Buffer,
     caption?: string,
-    chatId?: string,
+    groupId?: string,
     options?: Record<string, any>,
   ): Promise<any> {
     const botToken = integration.botToken || integration.token;
@@ -75,10 +75,10 @@ export class TelegramService {
       throw new BadRequestException('Telegram bot token is not configured');
     }
 
-    const targetChatId = chatId || integration.chatId;
+    const targetGroupId = groupId || integration.settings?.groupId;
     
-    if (!targetChatId) {
-      throw new BadRequestException('Chat ID is not configured');
+    if (!targetGroupId) {
+      throw new BadRequestException('Group ID is not configured');
     }
 
     try {
@@ -91,7 +91,7 @@ export class TelegramService {
         formData.append('photo', photo, { filename: 'photo.jpg' });
       }
       
-      formData.append('chat_id', targetChatId);
+      formData.append('chat_id', targetGroupId);
       if (caption) {
         formData.append('caption', caption);
       }

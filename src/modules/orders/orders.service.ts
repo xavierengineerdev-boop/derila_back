@@ -109,10 +109,10 @@ export class OrdersService {
 
       const message = this.formatOrderMessage(order);
 
-      const targetChatId = integration.settings?.groupId || integration.chatId;
+      const targetGroupId = integration.settings?.groupId;
 
-      if (!targetChatId) {
-        console.warn('No chat ID or group ID configured for Telegram integration');
+      if (!targetGroupId) {
+        console.warn('No group ID configured for Telegram integration');
         return;
       }
 
@@ -120,7 +120,7 @@ export class OrdersService {
         await this.telegramService.sendMessage(
           integration as any,
           message,
-          targetChatId,
+          targetGroupId,
           { parseMode: 'HTML' },
         );
 

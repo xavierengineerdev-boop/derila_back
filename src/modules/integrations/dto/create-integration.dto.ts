@@ -74,10 +74,6 @@ export class CreateIntegrationDto {
   @IsOptional()
   botToken?: string;
 
-  @ApiPropertyOptional({ description: 'ID чата/группы Telegram' })
-  @IsString()
-  @IsOptional()
-  chatId?: string;
 
   @ApiPropertyOptional({ description: 'Код группы Telegram' })
   @IsString()

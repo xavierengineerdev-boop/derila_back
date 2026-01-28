@@ -11,10 +11,10 @@ export class SendMessageDto {
   @MinLength(1)
   message: string;
 
-  @ApiPropertyOptional({ description: 'ID чата (если отличается от настроенного)', example: '-1001234567890' })
+  @ApiPropertyOptional({ description: 'ID группы (если отличается от настроенного)', example: '-1001234567890' })
   @IsString()
   @IsOptional()
-  chatId?: string;
+  groupId?: string;
 
   @ApiPropertyOptional({ description: 'Дополнительные параметры', type: Object })
   @IsObject()
